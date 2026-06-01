@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberWatch</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--green:#00ff88;--red:#ff2244;--amber:#ffaa00;--blue:#00aaff;--bg:#020810;--panel:#040d1a;--border:#0a2040}
+body{background:var(--bg);color:#c8e0ff;font-family:'Share Tech Mono',monospace;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,0.015) 2px,rgba(0,255,136,0.015) 4px);pointer-events:none;z-index:9999}
+#matrix{position:fixed;top:0;left:0;z-index:0;opacity:0.07}
+.wrap{position:relative;z-index:1}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;border-bottom:1px solid var(--border);background:rgba(4,13,26,0.95);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:12px}
+.logo-icon{width:36px;height:36px;border:2px solid var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;animation:borderPulse 2s infinite}
+@keyframes borderPulse{0%,100%{box-shadow:0 0 8px var(--green),inset 0 0 8px rgba(0,255,136,0.1)}50%{box-shadow:0 0 20px var(--green),inset 0 0 20px rgba(0,255,136,0.2)}}
+.logo-icon svg{width:18px;height:18px;fill:var(--green)}
+.logo-text{font-family:'Orbitron',monospace;font-size:16px;font-weight:900;letter-spacing:6px;color:var(--green);text-shadow:0 0 20px rgba(0,255,136,0.6)}
+.logo-sub{font-size:9px;letter-spacing:3px;color:#3a6080;margin-top:2px}
+.topbar-center{display:flex;flex-direction:column;align-items:center;gap:4px}
+.threat-level{font-family:'Orbitron',monospace;font-size:11px;letter-spacing:3px;padding:4px 16px;border-radius:2px;border:1px solid var(--amber);color:var(--amber);background:rgba(255,170,0,0.08);text-shadow:0 0 10px rgba(255,170,0,0.5)}
+.threat-bar{display:flex;gap:3px}
+.threat-seg{width:20px;height:4px;border-radius:1px}
+.topbar-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.clock{font-family:'Orbitron',monospace;font-size:18px;font-weight:700;color:var(--green);text-shadow:0 0 15px rgba(0,255,136,0.5);letter-spacing:3px}
+.date{font-size:10px;color:#3a6080;letter-spacing:2px}
+.main{padding:20px 28px}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.metric{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:18px;position:relative;overflow:hidden;cursor:default;transition:all 0.3s}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.metric.danger::before{background:linear-gradient(90deg,transparent,var(--red),transparent)}
+.metric.warn::before{background:linear-gradient(90deg,transparent,var(--amber),transparent)}
+.metric.ok::before{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+.metric.info::before{background:linear-gradient(90deg,transparent,var(--blue),transparent)}
+.metric:hover{border-color:rgba(0,255,136,0.3);transform:translateY(-2px)}
+.metric-corner{position:absolute;top:8px;right:8px;width:6px;height:6px;border-top:1px solid;border-right:1px solid;opacity:0.5}
+.metric.danger .metric-corner{border-color:var(--red)}
+.metric.warn .metric-corner{border-color:var(--amber)}
+.metric.ok .metric-corner{border-color:var(--green)}
+.metric.info .metric-corner{border-color:var(--blue)}
+.metric-label{font-size:9px;letter-spacing:3px;color:#3a6080;text-transform:uppercase;margin-bottom:10px}
+.metric-val{font-family:'Orbitron',monospace;font-size:32px;font-weight:700;line-height:1;margin-bottom:6px}
+.metric.danger .metric-val{color:var(--red);text-shadow:0 0 20px rgba(255,34,68,0.6)}
+.metric.warn .metric-val{color:var(--amber);text-shadow:0 0 20px rgba(255,170,0,0.6)}
+.metric.ok .metric-val{color:var(--green);text-shadow:0 0 20px rgba(0,255,136,0.6)}
+.metric.info .metric-val{color:var(--blue);text-shadow:0 0 20px rgba(0,170,255,0.6)}
+.metric-sub{font-size:10px;color:#3a6080}
+.metric-gauge{margin-top:10px;height:3px;background:#0a2040;border-radius:2px;overflow:hidden}
+.metric-gauge-fill{height:100%;border-radius:2px;transition:width 1s ease}
+.metric.danger .metric-gauge-fill{background:linear-gradient(90deg,#ff2244,#ff6688)}
+.metric.warn .metric-gauge-fill{background:linear-gradient(90deg,#ffaa00,#ffcc44)}
+.metric.ok .metric-gauge-fill{background:linear-gradient(90deg,#00ff88,#44ffaa)}
+.metric.info .metric-gauge-fill{background:linear-gradient(90deg,#00aaff,#44ccff)}
+.ticker-wrap{background:rgba(255,34,68,0.05);border:1px solid rgba(255,34,68,0.2);border-radius:4px;padding:8px 16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;overflow:hidden}
+.ticker-label{font-size:9px;letter-spacing:3px;color:var(--red);white-space:nowrap;padding:2px 8px;border:1px solid rgba(255,34,68,0.4);border-radius:2px}
+.ticker-text{font-size:11px;color:#ff6688;white-space:nowrap;animation:ticker 20s linear infinite}
+@keyframes ticker{0%{transform:translateX(100%)}100%{transform:translateX(-100%)}}
+.alerts{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.alert{background:var(--panel);border:1px solid;border-radius:4px;padding:14px;position:relative;overflow:hidden}
+.alert::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px}
+.alert.critical{border-color:rgba(255,34,68,0.3)}
+.alert.critical::after{background:linear-gradient(90deg,transparent,rgba(255,34,68,0.5),transparent)}
+.alert.warning{border-color:rgba(255,170,0,0.3)}
+.alert.warning::after{background:linear-gradient(90deg,transparent,rgba(255,170,0,0.5),transparent)}
+.alert.info{border-color:rgba(0,170,255,0.3)}
+.alert.info::after{background:linear-gradient(90deg,transparent,rgba(0,170,255,0.5),transparent)}
+.alert-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.alert-icon{font-size:18px}
+.badge{font-size:9px;padding:2px 10px;border-radius:2px;font-weight:700;letter-spacing:2px}
+.badge.critical{background:rgba(255,34,68,0.15);color:var(--red);border:1px solid rgba(255,34,68,0.4)}
+.badge.warning{background:rgba(255,170,0,0.15);color:var(--amber);border:1px solid rgba(255,170,0,0.4)}
+.badge.info{background:rgba(0,170,255,0.15);color:var(--blue);border:1px solid rgba(0,170,255,0.4)}
+.alert-title{font-size:12px;font-weight:600;margin-bottom:4px;color:#c8e0ff}
+.alert-sub{font-size:10px;color:#3a6080;line-height:1.5}
+.alert-pulse{width:8px;height:8px;border-radius:50%;animation:blink 1s infinite}
+.alert.critical .alert-pulse{background:var(--red);box-shadow:0 0 8px var(--red)}
+.alert.warning .alert-pulse{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+.alert.info .alert-pulse{background:var(--blue);box-shadow:0 0 8px var(--blue)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+.grid2{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:20px}
+.panel{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:16px}
+.panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.panel-title{font-size:9px;letter-spacing:3px;color:#3a6080;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.panel-title::before{content:'';width:3px;height:12px;background:var(--green);border-radius:2px}
+.panel-badge{font-size:9px;padding:2px 8px;border:1px solid var(--border);border-radius:2px;color:#3a6080}
+.chart-wrap{position:relative;height:180px}
+.log-list{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow:hidden}
+.log-row{display:flex;align-items:center;gap:8px;font-size:10px;padding:7px 10px;border-radius:3px;background:#020810;border:1px solid #0a2040;transition:all 0.4s}
+.log-row:hover{border-color:rgba(0,255,136,0.2);background:#040d1a}
+.log-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-red{background:var(--red);box-shadow:0 0 6px var(--red)}
+.dot-amber{background:var(--amber);box-shadow:0 0 6px var(--amber)}
+.dot-green{background:var(--green);box-shadow:0 0 6px var(--green)}
+.dot-blue{background:var(--blue);box-shadow:0 0 6px var(--blue)}
+.log-time{color:#3a6080;min-width:56px;font-size:9px}
+.log-msg{color:#c8e0ff;flex:1}
+.log-ip{color:#3a6080;font-size:9px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.bar-label{min-width:90px;font-size:10px;color:#3a6080}
+.bar-track{flex:1;height:8px;background:#0a2040;border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;border-radius:2px;transition:width 1.5s ease}
+.bar-val{min-width:50px;text-align:right;font-size:10px;color:#3a6080}
+.port-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;padding:9px 0;border-bottom:1px solid #0a2040}
+.port-row:last-child{border-bottom:none}
+.port-name{color:#3a6080;font-family:'Share Tech Mono',monospace}
+.port-state{font-size:9px;padding:3px 10px;border-radius:2px;font-weight:600;letter-spacing:1px}
+.open{background:rgba(0,255,136,0.1);color:var(--green);border:1px solid rgba(0,255,136,0.3)}
+.filtered{background:rgba(255,170,0,0.1);color:var(--amber);border:1px solid rgba(255,170,0,0.3)}
+.blocked-list{display:flex;flex-direction:column;gap:6px}
+.blocked-row{display:flex;justify-content:space-between;align-items:center;font-size:10px;padding:8px 10px;background:#020810;border-radius:3px;border:1px solid #0a2040;transition:all 0.3s;cursor:default}
+.blocked-row:hover{border-color:rgba(255,34,68,0.3);background:rgba(255,34,68,0.04)}
+.blocked-ip{color:var(--red);font-family:'Share Tech Mono',monospace;text-shadow:0 0 8px rgba(255,34,68,0.4)}
+.blocked-tag{font-size:9px;color:#3a6080;padding:2px 6px;border:1px solid #0a2040;border-radius:2px}
+.footer{text-align:center;padding:16px;font-size:9px;color:#1a3050;letter-spacing:3px;border-top:1px solid var(--border);margin-top:20px}
+</style>
+</head>
+<body>
+<canvas id="matrix"></canvas>
+<div class="wrap">
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 4l6 2.67V11c0 3.7-2.56 7.16-6 8.13C8.56 18.16 6 14.7 6 11V7.67L12 5z"/></svg>
+    </div>
+    <div>
+      <div class="logo-text">CYBERWATCH</div>
+      <div class="logo-sub">SECURITY OPERATIONS CENTER</div>
+    </div>
+  </div>
+  <div class="topbar-center">
+    <div class="threat-level">⚠ THREAT LEVEL: ELEVATED</div>
+    <div class="threat-bar">
+      <div class="threat-seg" style="background:#00ff88"></div>
+      <div class="threat-seg" style="background:#00ff88"></div>
+      <div class="threat-seg" style="background:#ffaa00"></div>
+      <div class="threat-seg" style="background:#ffaa00"></div>
+      <div class="threat-seg" style="background:#ffaa00"></div>
+      <div class="threat-seg" style="background:#0a2040"></div>
+      <div class="threat-seg" style="background:#0a2040"></div>
+    </div>
+  </div>
+  <div class="topbar-right">
+    <div class="clock" id="clock">00:00:00</div>
+    <div class="date" id="date">--</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="ticker-wrap">
+    <div class="ticker-label">⬤ LIVE FEED</div>
+    <div class="ticker-text">ALERT: Brute force attack detected on SSH port 22 · IP 192.168.1.104 blocked · 23 failed attempts · Fail2ban triggered · Unusual traffic spike on port 443 · New unrecognized device on network · MAC 3C:22:FB:1A:9E:44 · System integrity check: PASSED · Firewall rules updated · Last scan: clean</div>
+  </div>
+
+  <div class="metrics">
+    <div class="metric danger">
+      <div class="metric-corner"></div>
+      <div class="metric-label">Failed Logins</div>
+      <div class="metric-val" id="failCount">47</div>
+      <div class="metric-sub" id="failSub">uptime: loading...</div>
+      <div class="metric-gauge"><div class="metric-gauge-fill" style="width:74%" id="failGauge"></div></div>
+    </div>
+    <div class="metric warn">
+      <div class="metric-corner"></div>
+      <div class="metric-label">Blocked IPs</div>
+      <div class="metric-val" id="blockedCount">8</div>
+      <div class="metric-sub">active firewall blocks</div>
+      <div class="metric-gauge"><div class="metric-gauge-fill" style="width:60%"></div></div>
+    </div>
+    <div class="metric ok">
+      <div class="metric-corner"></div>
+      <div class="metric-label">CPU Usage</div>
+      <div class="metric-val" id="cpuVal">0%</div>
+      <div class="metric-sub" id="ramSub">RAM: loading...</div>
+      <div class="metric-gauge"><div class="metric-gauge-fill" id="cpuGauge" style="width:0%"></div></div>
+    </div>
+    <div class="metric info">
+      <div class="metric-corner"></div>
+      <div class="metric-label">Network I/O</div>
+      <div class="metric-val" id="netVal">0</div>
+      <div class="metric-sub" id="netSub">MB received</div>
+      <div class="metric-gauge"><div class="metric-gauge-fill" style="width:45%"></div></div>
+    </div>
+  </div>
+
+  <div class="alerts">
+    <div class="alert critical">
+      <div class="alert-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="alert-pulse"></div>
+          <span class="alert-icon">🛡</span>
+        </div>
+        <span class="badge critical">CRITICAL</span>
+      </div>
+      <div class="alert-title">Brute force — SSH port 22</div>
+      <div class="alert-sub">192.168.1.104 · 23 attempts in 4 min · Fail2ban triggered · IP blocked</div>
+    </div>
+    <div class="alert warning">
+      <div class="alert-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="alert-pulse"></div>
+          <span class="alert-icon">📡</span>
+        </div>
+        <span class="badge warning">WARNING</span>
+      </div>
+      <div class="alert-title">Outbound traffic spike</div>
+      <div class="alert-sub">Port 443 · 3.2 GB in 10 min from 10.0.0.22 · flagged for review</div>
+    </div>
+    <div class="alert info">
+      <div class="alert-header">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="alert-pulse"></div>
+          <span class="alert-icon">💻</span>
+        </div>
+        <span class="badge info">INFO</span>
+      </div>
+      <div class="alert-title">Unknown device on network</div>
+      <div class="alert-sub">MAC: 3C:22:FB:1A:9E:44 · no hostname resolved · monitoring active</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Failed auth attempts — 24h</div>
+        <div class="panel-badge">LIVE</div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="failChart"></canvas>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Live auth log</div>
+        <div class="panel-badge" id="logCount">0 events</div>
+      </div>
+      <div class="log-list" id="logList"></div>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Network traffic</div>
+      </div>
+      <div class="bar-row"><span class="bar-label">HTTPS :443</span><div class="bar-track"><div class="bar-fill" style="width:82%;background:linear-gradient(90deg,#00aaff,#44ccff)"></div></div><span class="bar-val">3.2 GB</span></div>
+      <div class="bar-row"><span class="bar-label">SSH   :22</span><div class="bar-track"><div class="bar-fill" style="width:55%;background:linear-gradient(90deg,#ff2244,#ff6688)"></div></div><span class="bar-val">214 MB</span></div>
+      <div class="bar-row"><span class="bar-label">DNS   :53</span><div class="bar-track"><div class="bar-fill" style="width:30%;background:linear-gradient(90deg,#00ff88,#44ffaa)"></div></div><span class="bar-val">88 MB</span></div>
+      <div class="bar-row"><span class="bar-label">HTTP  :80</span><div class="bar-track"><div class="bar-fill" style="width:18%;background:linear-gradient(90deg,#ffaa00,#ffcc44)"></div></div><span class="bar-val">42 MB</span></div>
+      <div class="bar-row"><span class="bar-label">RDP   :3389</span><div class="bar-track"><div class="bar-fill" style="width:8%;background:linear-gradient(90deg,#ff2244,#ff6688)"></div></div><span class="bar-val">9 MB</span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Open ports — nmap</div>
+      </div>
+      <div class="port-row"><span class="port-name">22/tcp  SSH</span><span class="port-state open">OPEN</span></div>
+      <div class="port-row"><span class="port-name">80/tcp  HTTP</span><span class="port-state open">OPEN</span></div>
+      <div class="port-row"><span class="port-name">443/tcp HTTPS</span><span class="port-state open">OPEN</span></div>
+      <div class="port-row"><span class="port-name">3306/tcp MySQL</span><span class="port-state filtered">FILTERED</span></div>
+      <div class="port-row"><span class="port-name">3389/tcp RDP</span><span class="port-state filtered">FILTERED</span></div>
+      <div class="port-row"><span class="port-name">8080/tcp Alt-HTTP</span><span class="port-state filtered">FILTERED</span></div>
+    </div>
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Blocked IPs — Fail2ban</div>
+      </div>
+      <div class="blocked-list">
+        <div class="blocked-row"><span class="blocked-ip">192.168.1.104</span><span class="blocked-tag">brute force</span></div>
+        <div class="blocked-row"><span class="blocked-ip">45.33.32.156</span><span class="blocked-tag">invalid user</span></div>
+        <div class="blocked-row"><span class="blocked-ip">172.16.0.99</span><span class="blocked-tag">brute force</span></div>
+        <div class="blocked-row"><span class="blocked-ip">198.51.100.2</span><span class="blocked-tag">port scan</span></div>
+        <div class="blocked-row"><span class="blocked-ip">185.220.101.5</span><span class="blocked-tag">tor exit node</span></div>
+        <div class="blocked-row"><span class="blocked-ip">203.0.113.42</span><span class="blocked-tag">invalid user</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">CYBERWATCH SOC v2.0 · ALL SYSTEMS OPERATIONAL · ENCRYPTED · MONITORED</div>
+</div>
+
+<script>
+const canvas=document.getElementById('matrix');
+const ctx=canvas.getContext('2d');
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight});
+const cols=Math.floor(canvas.width/16);
+const drops=Array(cols).fill(1);
+const chars='01アイウエオカキクケコサシスセソタチツテトナニヌネノ';
+function drawMatrix(){
+  ctx.fillStyle='rgba(2,8,16,0.05)';
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#00ff88';
+  ctx.font='14px Share Tech Mono';
+  drops.forEach((y,i)=>{
+    const c=chars[Math.floor(Math.random()*chars.length)];
+    ctx.fillText(c,i*16,y*16);
+    if(y*16>canvas.height&&Math.random()>0.975)drops[i]=0;
+    drops[i]++;
+  });
+}
+setInterval(drawMatrix,50);
+
+function tick(){
+  const now=new Date();
+  document.getElementById('clock').textContent=now.toLocaleTimeString('en-US',{hour12:false});
+  document.getElementById('date').textContent=now.toLocaleDateString('en-US',{weekday:'short',year:'numeric',month:'short',day:'numeric'}).toUpperCase();
+}
+tick();setInterval(tick,1000);
+
+const failData=[2,1,0,3,1,0,0,2,4,6,3,2,1,3,5,8,4,2,6,9,7,5,3,4];
+const hours=Array.from({length:24},(_,i)=>i+':00');
+new Chart(document.getElementById('failChart'),{
+  type:'bar',
+  data:{
+    labels:hours,
+    datasets:[{
+      label:'Failed logins',
+      data:failData,
+      backgroundColor:failData.map(v=>v>6?'rgba(255,34,68,0.7)':v>3?'rgba(255,170,0,0.7)':'rgba(0,170,255,0.5)'),
+      borderColor:failData.map(v=>v>6?'#ff2244':v>3?'#ffaa00':'#00aaff'),
+      borderWidth:1,
+      borderRadius:2
+    }]
+  },
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{legend:{display:false},tooltip:{backgroundColor:'#040d1a',borderColor:'#0a2040',borderWidth:1,titleColor:'#00ff88',bodyColor:'#c8e0ff'}},
+    scales:{
+      x:{ticks:{color:'#3a6080',font:{size:8},autoSkip:true,maxTicksLimit:8},grid:{color:'#0a2040'}},
+      y:{ticks:{color:'#3a6080',font:{size:8}},grid:{color:'#0a2040'}}
+    }
+  }
+});
+
+let failCount=47;
+let logTotal=0;
+
+async function fetchStats(){
+  try{
+    const res=await fetch('/api/stats');
+    const d=await res.json();
+    document.getElementById('cpuVal').textContent=d.cpu+'%';
+    document.getElementById('cpuGauge').style.width=d.cpu+'%';
+    document.getElementById('ramSub').textContent=`RAM: ${d.ram}% · ${d.ram_used}/${d.ram_total}GB`;
+    document.getElementById('netVal').textContent=d.bytes_recv;
+    document.getElementById('netSub').textContent=`MB recv · ${d.bytes_sent} MB sent`;
+    document.getElementById('blockedCount').textContent=d.blocked_count;
+    document.getElementById('failSub').textContent='uptime: '+d.uptime;
+    addLog(d.log);
+    if(d.log.dot==='red'){failCount++;document.getElementById('failCount').textContent=failCount;}
+  }catch(e){console.log(e);}
+}
+
+function addLog(log){
+  logTotal++;
+  document.getElementById('logCount').textContent=logTotal+' events';
+  const list=document.getElementById('logList');
+  const row=document.createElement('div');
+  row.className='log-row';
+  row.style.opacity='0';
+  row.style.transform='translateX(-10px)';
+  row.innerHTML=`<div class="log-dot dot-${log.dot}"></div><span class="log-time">${log.time}</span><span class="log-msg">${log.msg}</span><span class="log-ip">${log.ip}</span>`;
+  list.insertBefore(row,list.firstChild);
+  setTimeout(()=>{row.style.transition='all 0.3s';row.style.opacity='1';row.style.transform='translateX(0)'},10);
+  if(list.children.length>8)list.removeChild(list.lastChild);
+}
+
+fetchStats();
+setInterval(fetchStats,3000);
+</script>
+</body>
+</html>
