@@ -1,3 +1,4 @@
+
 # CyberWatch — Cybersecurity Monitoring Dashboard
 
 Real-time SOC-style security dashboard built with Python Flask, psutil, and Chart.js. Features a matrix rain background, glowing live metrics, animated alert feed, and SSH brute force simulation.
@@ -21,7 +22,7 @@ Real-time SOC-style security dashboard built with Python Flask, psutil, and Char
 
 ## Screenshots
 <img width="1900" height="903" alt="cyberwatch" src="https://github.com/user-attachments/assets/7ab16333-e1f6-4267-ba24-6f6288cfe6d4" />
-
+<img width="272" height="308" alt="json" src="https://github.com/user-attachments/assets/9fec8358-8b77-4a58-9b29-f7a89ed43b86" />
 ## How to Run
 pip install flask psutil
 python app.py
