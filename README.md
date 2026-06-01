@@ -20,7 +20,7 @@ Real-time SOC-style security dashboard built with Python Flask, psutil, and Char
 - HTML / CSS / JavaScript
 
 ## Screenshots
-[Add your screenshots here]
+<img width="1900" height="903" alt="cyberwatch" src="https://github.com/user-attachments/assets/7ab16333-e1f6-4267-ba24-6f6288cfe6d4" />
 
 ## How to Run
 pip install flask psutil
